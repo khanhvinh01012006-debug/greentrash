@@ -126,9 +126,32 @@ Xong! Dữ liệu cũ giữ nguyên, cột mới có giá trị NULL cho các d�
 | `new row violates row-level security` | Chưa chạy đủ file `schema.sql` (thiếu policy) — chạy lại cả file |
 | Ảnh không hiện | Bucket phải bật **Public bucket** |
 
-## Cập nhật đợt 2 (chạy thêm trong SQL Editor theo thứ tự)
-1. `supabase/update_01_bai_viet.sql` - bảng tin tức/bài viết
-2. `supabase/update_02_hoa_don_nguoi_dung.sql` - khóa tài khoản, định mức vật tư, hóa đơn
+## 7. Các file SQL cập nhật thêm (BẮT BUỘC chạy đủ, đúng thứ tự)
 
-Chức năng mới: admin quản lý người dùng (đổi vai trò, khóa/mở khóa), hóa đơn tự
-lập khi hoàn tất lịch (kèm trừ kho vật tư theo định mức), khách xem hóa đơn.
+`schema.sql` chỉ tạo 5 bảng gốc. Sau đó phải chạy tiếp các file dưới đây
+trong **SQL Editor**, đúng theo thứ tự số (01 → 05) — file sau có thể phụ
+thuộc cột/bảng do file trước tạo ra. Tất cả đều dùng `ADD COLUMN IF NOT
+EXISTS` / `CREATE TABLE IF NOT EXISTS` nên **chạy lại nhiều lần vẫn an
+toàn, không mất dữ liệu cũ**.
+
+| # | File | Bổ sung gì | Bắt buộc cho |
+|---|---|---|---|
+| 1 | `supabase/update_01_bai_viet.sql` | Bảng `bai_viet` (tin tức/mẹo sống xanh) | Khối "Tin tức" ở Trang chủ |
+| 2 | `supabase/update_02_hoa_don_nguoi_dung.sql` | Cột `bi_khoa`; bảng `hoa_don`, `hoa_don_vat_tu`; cột `dinh_muc_su_dung` | Quản lý người dùng, hóa đơn tự lập |
+| 3 | `supabase/update_03_thanh_toan.sql` | Cột `phuong_thuc_tt`, `trang_thai_tt` trong `lich_thu_gom` | **Toàn bộ luồng thanh toán** (khách chọn tiền mặt/QR, admin xác nhận) — **THIẾU FILE NÀY APP SẼ LỖI** vì code đọc thẳng 2 cột này (`lich_cua_toi_screen.dart`, `quan_ly_lich_screen.dart`) |
+| 4 | `supabase/update_04_anh_dai_dien.sql` | Cột `anh_dai_dien_url` trong `nguoi_dung` | Đổi ảnh đại diện ở tab Tài khoản |
+| 5 | `supabase/update_05_cong_khai_bang_gia_tin_tuc.sql` | Mở policy SELECT cho vai trò `anon` trên `loai_rac`, `bai_viet` | Khách **chưa đăng nhập** xem được bảng giá + tin tức ở Trang chủ |
+
+> ⚠️ Nếu chỉ chạy `schema.sql` rồi bỏ qua các file trên, app vẫn khởi động
+> được nhưng sẽ báo lỗi (hoặc âm thầm trả về 0 dòng, không báo lỗi gì) ngay
+> khi chạm tới tính năng tương ứng ở cột "Bắt buộc cho".
+
+## 8. Lệnh chạy app
+
+```bash
+# Web (Chrome) - cổng cố định 5000 theo quy ước của dự án (xem CLAUDE.md)
+flutter run -d chrome --web-port=5000
+
+# Hoặc máy ảo Android / điện thoại thật
+flutter run
+```

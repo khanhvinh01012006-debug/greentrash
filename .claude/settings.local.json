@@ -51,7 +51,14 @@
       "Bash(git commit -m ' *)",
       "Bash(powershell -Command \"Stop-Process -Id 45144 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 15308 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 42568 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 42568 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 13028 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 10412 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 9884 -Force; Stop-Process -Id 12128 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 15964 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 41608 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 31220 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 47488 -Force\")"
     ]
   }
 }

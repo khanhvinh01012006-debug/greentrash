@@ -6,7 +6,6 @@
 //   - Sau này đổi database chỉ cần sửa các file service, không đụng UI.
 // ============================================================================
 
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart'; // để dùng biến `supabase`
 
 class AuthService {

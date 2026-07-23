@@ -13,38 +13,77 @@ import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../widgets/common.dart';
 
-class LichCuaToiScreen extends StatelessWidget {
-  const LichCuaToiScreen({super.key});
+class LichCuaToiScreen extends StatefulWidget {
+  // Bấm nút "Đặt lịch ngay" ở trạng thái rỗng -> gọi callback này để màn
+  // cha (CustomerHomeScreen) nhảy sang tab Đặt lịch, giống cách
+  // TrangChuScreen đang nhận onDatLichNgay - tái dùng luôn, không tạo
+  // callback mới.
+  final VoidCallback onDatLichNgay;
+  const LichCuaToiScreen({super.key, required this.onDatLichNgay});
+
+  @override
+  State<LichCuaToiScreen> createState() => _LichCuaToiScreenState();
+}
+
+class _LichCuaToiScreenState extends State<LichCuaToiScreen> {
+  // Lưu Stream trong state (thay vì gọi thẳng trong build() như trước) để
+  // nút "Thử lại" ở trạng thái lỗi có thể setState gán 1 Stream MỚI, buộc
+  // StreamBuilder resubscribe lại từ đầu.
+  late Stream<List<Map<String, dynamic>>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = DatabaseService.streamLichCuaToi();
+  }
+
+  void _thuLai() {
+    setState(() => _stream = DatabaseService.streamLichCuaToi());
+  }
 
   @override
   Widget build(BuildContext context) {
     // StreamBuilder: mỗi khi database ĐỔI (thêm/sửa lịch), stream phát dữ liệu
     // mới -> builder chạy lại -> giao diện tự cập nhật. Đây là REALTIME.
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: DatabaseService.streamLichCuaToi(),
+      stream: _stream,
       builder: (context, snapshot) {
+        // TRẠNG THÁI 1: đang tải - CHỈ hiện spinner, chưa hiện gì khác
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+
+        // TRẠNG THÁI 2: lỗi tải - thông báo lỗi + nút "Thử lại"
         if (snapshot.hasError) {
-          return Center(child: Text('Lỗi: ${snapshot.error}'));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline,
+                      size: 48, color: Colors.red),
+                  const SizedBox(height: 12),
+                  Text('Không tải được lịch: ${snapshot.error}',
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _thuLai,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         final dsLich = snapshot.data ?? [];
 
-        // Chưa có lịch nào -> hiện hướng dẫn
+        // TRẠNG THÁI 3: tải xong, danh sách rỗng - empty state có hành động
+        // rõ ràng (bấm được), không bắt khách tự mò sang tab khác nữa
         if (dsLich.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.event_busy, size: 64, color: Colors.grey),
-                SizedBox(height: 12),
-                Text('Bạn chưa có lịch thu gom nào.\nHãy sang tab "Đặt lịch" nhé!',
-                    textAlign: TextAlign.center),
-              ],
-            ),
-          );
+          return _TrangThaiRong(onDatLichNgay: widget.onDatLichNgay);
         }
 
         return ListView.builder(
@@ -53,6 +92,57 @@ class LichCuaToiScreen extends StatelessWidget {
           itemBuilder: (context, i) => _TheLich(lich: dsLich[i]),
         );
       },
+    );
+  }
+}
+
+// ============================================================================
+// _TrangThaiRong: hiện khi khách CHƯA có lịch thu gom nào - icon tròn to +
+// tiêu đề + mô tả ngắn + nút bấm thẳng sang tab Đặt lịch.
+// ============================================================================
+class _TrangThaiRong extends StatelessWidget {
+  final VoidCallback onDatLichNgay;
+  const _TrangThaiRong({required this.onDatLichNgay});
+
+  @override
+  Widget build(BuildContext context) {
+    final mauChuDao = Theme.of(context).colorScheme.primary;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: mauChuDao.withOpacity(0.1),
+              ),
+              child: Icon(Icons.event_note, size: 56, color: mauChuDao),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Chưa có lịch thu gom nào',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Đặt lịch đầu tiên để chúng tôi đến tận nhà thu gom',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onDatLichNgay,
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Đặt lịch ngay'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -219,7 +219,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final cacTab = [
       trangChu,
       const DatLichScreen(),
-      const LichCuaToiScreen(),
+      LichCuaToiScreen(onDatLichNgay: _batDauDatLich),
       const TaiKhoanScreen(),
     ];
 
@@ -237,6 +237,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           // đi, tránh hiện thừa một thanh menu vô dụng ở trên đầu
           if (_tabDangChon == 0) menuNgang,
           Expanded(
+            // IndexedStack (thay vì cacTab[_tabDangChon]) giữ TẤT CẢ 4 màn
+            // luôn tồn tại trong cây, chỉ ẩn/hiện - nên đang gõ dở form Đặt
+            // lịch mà lỡ qua tab khác rồi quay lại, dữ liệu đã gõ vẫn còn
+            // (không bị dispose/tạo lại State như cách chọn 1 widget duy nhất).
             child: IndexedStack(index: _tabDangChon, children: cacTab),
           ),
         ],

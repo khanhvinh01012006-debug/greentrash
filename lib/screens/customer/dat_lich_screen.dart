@@ -416,17 +416,26 @@ class _DatLichScreenState extends State<DatLichScreen> {
                 const SizedBox(height: 8),
                 // Số cột do build() truyền vào theo mốc 1000px (3 cột khi
                 // có panel bên cạnh, 2 cột khi form chiếm trọn màn hẹp).
-                GridView.count(
-                  crossAxisCount: soCotLuoi,
+                //
+                // GridView.builder + mainAxisExtent (chiều cao CỐ ĐỊNH theo
+                // px) thay vì GridView.count + childAspectRatio (chiều cao
+                // TỈ LỆ theo bề rộng cột) - childAspectRatio làm thẻ quá
+                // thấp khi màn hẹp (cột hẹp -> thẻ thấp) trong khi nội dung
+                // thẻ (icon + tên + giá + mô tả) cần cùng 1 chiều cao tối
+                // thiểu bất kể màn rộng hay hẹp -> tràn 1.9px ở đáy.
+                GridView.builder(
                   // Nằm trong form đang cuộn (SingleChildScrollView) nên
                   // GridView không tự cuộn riêng - để cha cuộn hết
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.4,
-                  children:
-                      _dsLoaiRac.map((loai) => _theLoaiRac(loai)).toList(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: soCotLuoi,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    mainAxisExtent: 200,
+                  ),
+                  itemCount: _dsLoaiRac.length,
+                  itemBuilder: (context, i) => _theLoaiRac(_dsLoaiRac[i]),
                 ),
                 const SizedBox(height: 16),
 
@@ -442,45 +451,60 @@ class _DatLichScreenState extends State<DatLichScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ---- 3. Ngày hẹn + khung giờ (2 ô cạnh nhau) ----
-                Row(
-                  children: [
-                    // Ô chọn ngày - dùng InkWell để bấm vào mở lịch
-                    Expanded(
-                      child: InkWell(
-                        onTap: _chonNgay,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Ngày hẹn',
-                            prefixIcon: Icon(Icons.calendar_today_outlined),
-                          ),
-                          child: Text(
-                            _ngayHen == null
-                                ? 'Chọn ngày'
-                                : dinhDangNgay(_ngayHen!),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Dropdown khung giờ
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _khungGio,
+                // ---- 3. Ngày hẹn + khung giờ ----
+                // LayoutBuilder mốc 600px: màn hẹp không đủ chỗ cho 2 ô
+                // cùng hàng (tràn 22px) -> xếp dọc. Xây 2 ô này 1 LẦN thành
+                // biến rồi đặt vào Column hoặc Row tùy bề rộng - không viết
+                // 2 bản riêng cho InkWell/DropdownButtonFormField.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final oNgayHen = InkWell(
+                      onTap: _chonNgay,
+                      child: InputDecorator(
                         decoration: const InputDecoration(
-                          labelText: 'Khung giờ',
-                          prefixIcon: Icon(Icons.schedule_outlined),
+                          labelText: 'Ngày hẹn',
+                          prefixIcon: Icon(Icons.calendar_today_outlined),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                              value: 'sang', child: Text('Sáng (7h-11h)')),
-                          DropdownMenuItem(
-                              value: 'chieu', child: Text('Chiều (13h-17h)')),
-                        ],
-                        onChanged: (v) => setState(() => _khungGio = v!),
+                        child: Text(
+                          _ngayHen == null
+                              ? 'Chọn ngày'
+                              : dinhDangNgay(_ngayHen!),
+                        ),
                       ),
-                    ),
-                  ],
+                    );
+                    final oKhungGio = DropdownButtonFormField<String>(
+                      value: _khungGio,
+                      decoration: const InputDecoration(
+                        labelText: 'Khung giờ',
+                        prefixIcon: Icon(Icons.schedule_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'sang', child: Text('Sáng (7h-11h)')),
+                        DropdownMenuItem(
+                            value: 'chieu', child: Text('Chiều (13h-17h)')),
+                      ],
+                      onChanged: (v) => setState(() => _khungGio = v!),
+                    );
+
+                    if (constraints.maxWidth < 600) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          oNgayHen,
+                          const SizedBox(height: 12),
+                          oKhungGio,
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: oNgayHen),
+                        const SizedBox(width: 12),
+                        Expanded(child: oKhungGio),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 

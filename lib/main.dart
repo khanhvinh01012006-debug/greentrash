@@ -122,6 +122,10 @@ class _CongDieuHuongState extends State<CongDieuHuong> {
 
   @override
   Widget build(BuildContext context) {
+    // Lồng 2 tầng builder vì 2 việc có tốc độ khác nhau: đăng nhập/đăng xuất
+    // là sự kiện tức thời (StreamBuilder bắt ngay), còn hỏi VAI TRÒ phải gọi
+    // thêm 1 query async tới database (FutureBuilder chờ kết quả) - không
+    // gộp làm 1 được vì FutureBuilder cần biết ĐÃ đăng nhập ai rồi mới hỏi.
     return StreamBuilder<AuthState>(
       // Stream trạng thái đăng nhập do Supabase cung cấp sẵn
       stream: supabase.auth.onAuthStateChange,

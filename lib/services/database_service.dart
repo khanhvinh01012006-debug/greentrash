@@ -184,10 +184,12 @@ class DatabaseService {
   // PHẦN 3: VẬT TƯ (bảng vat_tu) - UC11, UC12, UC13
   // ==========================================================================
 
+  /// Lấy danh sách vật tư (dùng cho màn quản lý kho + form hoàn tất lịch)
   static Future<List<Map<String, dynamic>>> layDanhSachVatTu() async {
     return await supabase.from('vat_tu').select().order('id');
   }
 
+  /// Admin: thêm vật tư mới vào kho
   static Future<void> themVatTu({
     required String ten,
     required String donViTinh,
@@ -232,6 +234,7 @@ class DatabaseService {
         .eq('id', idVatTu);
   }
 
+  /// Admin: xóa vật tư khỏi kho
   static Future<void> xoaVatTu(int id) async {
     await supabase.from('vat_tu').delete().eq('id', id);
   }

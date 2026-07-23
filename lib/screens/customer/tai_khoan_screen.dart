@@ -15,6 +15,7 @@ import '../../main.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/storage_service.dart';
+import '../../widgets/common.dart';
 
 class TaiKhoanScreen extends StatefulWidget {
   const TaiKhoanScreen({super.key});
@@ -199,6 +200,103 @@ class _TaiKhoanScreenState extends State<TaiKhoanScreen> {
     super.dispose();
   }
 
+  /// Dải thống kê 3 ô (số lần thu gom / tổng khối lượng / tổng chi phí) -
+  /// CHỈ tính các lịch đã 'hoan_tat'. Dùng lại đúng
+  /// DatabaseService.streamLichCuaToi() đã có (không viết query mới), rồi
+  /// LỌC + CỘNG DỒN bằng Dart thuần ngay trong builder.
+  Widget _daiThongKe() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: DatabaseService.streamLichCuaToi(),
+      builder: (context, snapshot) {
+        String soDon = '—';
+        String tongKhoiLuong = '—';
+        String tongChiPhi = '—';
+
+        // Có dữ liệu (không phải đang tải/lỗi) -> lọc + cộng dồn. Đang tải
+        // (chưa hasData) hoặc lỗi (hasError) -> giữ nguyên '—' ở cả 3 ô,
+        // KHÔNG dùng CircularProgressIndicator để layout khỏi nhảy giật.
+        if (snapshot.hasData) {
+          num soLuong = 0;
+          num tongKg = 0;
+          num tongTien = 0;
+          for (final lich in snapshot.data!) {
+            if (lich['trang_thai'] == 'hoan_tat') {
+              soLuong += 1;
+              tongKg += (lich['khoi_luong_uoc_tinh'] as num? ?? 0);
+              tongTien += (lich['chi_phi_du_kien'] as num? ?? 0);
+            }
+          }
+          soDon = '$soLuong';
+          tongKhoiLuong = '${tongKg.toStringAsFixed(1)} kg';
+          tongChiPhi = dinhDangTien(tongTien);
+        }
+
+        final oSoDon =
+            _oThongKe(Icons.check_circle_outline, soDon, 'Lần thu gom');
+        final oKhoiLuong =
+            _oThongKe(Icons.scale, tongKhoiLuong, 'Tổng khối lượng');
+        final oChiPhi = _oThongKe(Icons.payments, tongChiPhi, 'Tổng chi phí');
+
+        // Cố định nằm ngang: vùng nội dung màn này đã bị ConstrainedBox
+        // giới hạn ~500px (không phải bề rộng cửa sổ) nên không cần đo
+        // responsive - 3 ô vẫn đủ chỗ.
+        //
+        // IntrinsicHeight + CrossAxisAlignment.stretch để 3 Card cao bằng
+        // nhau. LƯU Ý: Row này nằm trong Column đang ở trong
+        // SingleChildScrollView (chiều cao KHÔNG giới hạn) - nếu chỉ dùng
+        // CrossAxisAlignment.stretch suông (không có IntrinsicHeight bọc
+        // ngoài), Row sẽ cố ép các ô con nhận chiều cao VÔ HẠN và vỡ layout
+        // (lỗi "Cannot hit test a render box with no size" từng gặp).
+        // IntrinsicHeight đo trước chiều cao lớn nhất trong các ô rồi ép
+        // Row về đúng con số hữu hạn đó, stretch mới an toàn.
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: oSoDon),
+              const SizedBox(width: 12),
+              Expanded(child: oKhoiLuong),
+              const SizedBox(width: 12),
+              Expanded(child: oChiPhi),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 1 ô thống kê: icon -> số liệu đậm cỡ 20 -> nhãn xám nhỏ - dùng chung
+  /// cho cả 3 ô trong dải thống kê, tránh chép lại bố cục 3 lần.
+  Widget _oThongKe(IconData icon, String giaTri, String nhan) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: const Color(0xFF2E7D32)),
+            const SizedBox(height: 8),
+            // FittedBox tự thu nhỏ chữ vừa khung thay vì xuống dòng - số
+            // tiền dài (vd "375.000 đ") ở màn hẹp trước đây bị wrap xuống
+            // dòng 2, làm chiều cao 3 ô lệch nhau.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(giaTri,
+                  maxLines: 1,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 2),
+            Text(nhan,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_dangTaiHoSo) {
@@ -256,6 +354,10 @@ class _TaiKhoanScreenState extends State<TaiKhoanScreen> {
               ),
               const SizedBox(height: 8),
               Text(_email, style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 24),
+
+              // ---- Dải thống kê: số lần thu gom / khối lượng / chi phí ----
+              _daiThongKe(),
               const SizedBox(height: 24),
 
               // ---- Form sửa thông tin ----
