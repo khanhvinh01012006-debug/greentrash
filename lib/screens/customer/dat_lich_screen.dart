@@ -208,6 +208,84 @@ class _DatLichScreenState extends State<DatLichScreen> {
     return Icons.delete_outline;
   }
 
+  /// Panel tóm tắt đơn bên phải form - liệt kê lại đúng những gì khách ĐÃ
+  /// điền bên trái, cập nhật realtime nhờ CÙNG các setState() form đang có
+  /// sẵn (chọn loại rác, chọn ngày, đổi khung giờ, gõ khối lượng) - không
+  /// thêm biến trạng thái mới nào, chỉ đọc lại state hiện có để hiển thị.
+  Widget _panelTomTat() {
+    // Tìm loại rác đang chọn (nếu có) để lấy tên + đơn giá hiện ra panel
+    Map<String, dynamic>? loaiDangChon;
+    if (_loaiRacDangChon != null) {
+      final tim = _dsLoaiRac.firstWhere(
+        (l) => l['id'] == _loaiRacDangChon,
+        orElse: () => {},
+      );
+      loaiDangChon = tim.isEmpty ? null : tim;
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tóm tắt đơn',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            _dongTomTat(
+              'Loại rác',
+              loaiDangChon == null
+                  ? '—'
+                  : '${loaiDangChon['ten_loai_rac']} '
+                      '(${dinhDangTien(loaiDangChon['don_gia'])}/kg)',
+            ),
+            _dongTomTat(
+                'Ngày hẹn', _ngayHen == null ? '—' : dinhDangNgay(_ngayHen!)),
+            _dongTomTat('Khung giờ',
+                _khungGio == 'sang' ? 'Sáng (7h-11h)' : 'Chiều (13h-17h)'),
+            _dongTomTat(
+              'Khối lượng ước tính',
+              _khoiLuongCtrl.text.trim().isEmpty
+                  ? '—'
+                  : '${_khoiLuongCtrl.text.trim()} kg',
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Chi phí dự kiến',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  dinhDangTien(_chiPhiDuKien),
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 1 dòng nhãn (nhỏ, xám) + giá trị (đậm) trong panel tóm tắt - tách hàm vì
+  /// 4 dòng (loại rác/ngày/khung giờ/khối lượng) dùng chung đúng bố cục này.
+  Widget _dongTomTat(String nhan, String giaTri) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(nhan,
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          Text(giaTri, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
   /// 1 thẻ loại rác trong lưới chọn. Bấm vào -> chọn (hoặc đổi sang loại
   /// khác); thẻ đang chọn đổi viền + nền bằng AnimatedContainer cho mượt.
   Widget _theLoaiRac(Map<String, dynamic> loai) {
@@ -261,17 +339,71 @@ class _DatLichScreenState extends State<DatLichScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Đặt lịch thu gom rác',
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          // 1 LayoutBuilder DUY NHẤT đo bề rộng thật đang có (đã bị giới hạn
+          // tối đa 1200 bởi ConstrainedBox ở trên) để quyết định bố cục -
+          // mốc 1000px: đủ rộng thì panel tóm tắt 300px mới có chỗ đứng
+          // cạnh form 3 cột, không thì tràn (overflow) như đã gặp.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final manHinhRong = constraints.maxWidth >= 1000;
+              if (!manHinhRong) {
+                // Màn hẹp: ẩn HẲN panel (không render, không phải chỉ
+                // Visibility) + form chiếm trọn bề ngang + lưới về 2 cột +
+                // TOÀN BỘ form (kể cả dòng Chi phí dự kiến) tự cuộn như cũ
+                return SingleChildScrollView(
+                  child: _formDatLich(soCotLuoi: 2, hienChiPhiCuoiForm: true),
+                );
+              }
+              // Màn rộng: panel phải ĐỨNG YÊN trong khi chỉ cột form cuộn ->
+              // SingleChildScrollView chuyển vào TRONG, chỉ bọc riêng từng
+              // cột (form + panel), Row không còn bị bọc scroll chung nữa.
+              // Row cần chiều cao xác định để 2 cột con biết giới hạn cuộn
+              // của mình - bọc SizedBox.expand() lấy đúng chiều cao khung
+              // hình cha đang cấp (cách đơn giản nhất, không cần Sliver).
+              return SizedBox.expand(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: _formDatLich(
+                            soCotLuoi: 3, hienChiPhiCuoiForm: false),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    SizedBox(
+                      width: 300,
+                      // Phòng màn thấp: panel cao hơn vùng hiển thị thì tự
+                      // cuộn riêng, không tràn ra ngoài.
+                      child: SingleChildScrollView(child: _panelTomTat()),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Form đặt lịch (bên trái, hoặc chiếm trọn màn hẹp) - tách riêng khỏi
+  /// build() để build() gọi chung 1 hàm này cho cả 2 chế độ (không nhân đôi
+  /// widget con); [soCotLuoi] = số cột lưới thẻ loại rác, [hienChiPhiCuoiForm]
+  /// = có hiện lại dòng "Chi phí dự kiến" ở cuối form không (màn rộng đã có
+  /// sẵn số này trong panel tóm tắt bên cạnh nên ẩn đi, tránh lặp 2 lần).
+  Widget _formDatLich({required int soCotLuoi, required bool hienChiPhiCuoiForm}) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Đặt lịch thu gom rác',
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
 
@@ -282,19 +414,17 @@ class _DatLichScreenState extends State<DatLichScreen> {
                         fontSize: 12,
                         color: Colors.black54)),
                 const SizedBox(height: 8),
-                // Cố định 2 cột: form bị ConstrainedBox bọc ngoài giới hạn
-                // tối đa 500px nên bề rộng thật sự tới GridView chỉ khoảng
-                // 470px (đã trừ padding) - không bao giờ đủ rộng để lên 3
-                // cột, LayoutBuilder theo mốc 700px là thừa, bỏ đi cho gọn.
+                // Số cột do build() truyền vào theo mốc 1000px (3 cột khi
+                // có panel bên cạnh, 2 cột khi form chiếm trọn màn hẹp).
                 GridView.count(
-                  crossAxisCount: 2,
+                  crossAxisCount: soCotLuoi,
                   // Nằm trong form đang cuộn (SingleChildScrollView) nên
                   // GridView không tự cuộn riêng - để cha cuộn hết
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.5,
+                  childAspectRatio: 1.4,
                   children:
                       _dsLoaiRac.map((loai) => _theLoaiRac(loai)).toList(),
                 ),
@@ -404,37 +534,46 @@ class _DatLichScreenState extends State<DatLichScreen> {
                 const SizedBox(height: 16),
 
                 // ---- 7. Ô hiển thị CHI PHÍ DỰ KIẾN (tự tính) ----
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(12),
+                // Màn rộng đã có số này trong panel tóm tắt bên cạnh rồi -
+                // ẩn ở đây để khỏi hiện lặp lại 2 lần trên cùng màn hình.
+                if (hienChiPhiCuoiForm) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Expanded để nhãn tự XUỐNG DÒNG khi màn hẹp thay vì
+                        // tràn ngang (trước đây 2 Text chia nhau 1 Row không
+                        // ai nhường ai, hẹp lại là tràn 70px)
+                        const Expanded(
+                          child: Text('Chi phí dự kiến:',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        Text(
+                          // Chưa chọn loại rác thì chưa có gì để tính - hiện
+                          // chữ nhắc thay vì "0 đ" (nhìn như lỗi tính toán)
+                          _loaiRacDangChon == null
+                              ? 'Chọn loại rác để xem giá'
+                              : dinhDangTien(_chiPhiDuKien),
+                          style: _loaiRacDangChon == null
+                              ? const TextStyle(
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.black54)
+                              : const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E7D32)),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Chi phí dự kiến:',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text(
-                        // Chưa chọn loại rác thì chưa có gì để tính - hiện
-                        // chữ nhắc thay vì "0 đ" (nhìn như lỗi tính toán)
-                        _loaiRacDangChon == null
-                            ? 'Chọn loại rác để xem giá'
-                            : dinhDangTien(_chiPhiDuKien),
-                        style: _loaiRacDangChon == null
-                            ? const TextStyle(
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.black54)
-                            : const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
 
                 // ---- 8. Nút ĐẶT LỊCH ----
                 SizedBox(
@@ -451,9 +590,6 @@ class _DatLichScreenState extends State<DatLichScreen> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
