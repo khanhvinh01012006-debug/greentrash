@@ -32,6 +32,22 @@ class CustomerHomeScreen extends StatefulWidget {
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+  // Mốc bề rộng đổi layout: dưới mốc này dùng NavigationBar dưới đáy (kiểu
+  // điện thoại), từ mốc trở lên đổi qua NavigationRail cột trái (kiểu web/
+  // desktop) - xổ 1 thanh ngang dưới đáy trên màn hình rộng trông như app
+  // di động bị phóng to, không hợp.
+  static const double _mocManHinhRong = 900;
+
+  // Dữ liệu 4 tab (icon + nhãn) - khai 1 LẦN ở đây rồi dùng chung để tạo
+  // cả NavigationDestination (NavigationBar) lẫn NavigationRailDestination
+  // (NavigationRail), tránh chép 2 bộ icon/nhãn dễ lệch nhau khi sửa sau này.
+  static const List<(IconData, String)> _diemDieuHuong = [
+    (Icons.home_outlined, 'Trang chủ'),
+    (Icons.add_circle_outline, 'Đặt lịch'),
+    (Icons.list_alt, 'Lịch của tôi'),
+    (Icons.person_outline, 'Tài khoản'),
+  ];
+
   int _tabDangChon = 0; // vị trí tab đang mở (0..3) - chỉ dùng khi đã đăng nhập
 
   // Cuộn + "cột mốc" của Trang chủ - khai báo 1 LẦN ở đây (không phải trong
@@ -207,56 +223,83 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       const TaiKhoanScreen(),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 68,
-        title: tieuDeApp,
-        actions: [
-          IconButton(
-            tooltip: 'Tài khoản',
-            icon:
-                const Icon(Icons.account_circle_outlined, color: Colors.white),
-            onPressed: () => setState(() => _tabDangChon = 3),
+    // Nội dung chính (menu ngang + IndexedStack 4 tab) - khai báo 1 LẦN duy
+    // nhất ở đây rồi dùng chung cho cả layout hẹp (mobile) lẫn layout rộng
+    // (desktop) bên dưới. Nhờ vậy IndexedStack luôn là CÙNG MỘT cây widget,
+    // không bị build thành 2 bản riêng biệt (build 2 bản = 2 State khác
+    // nhau -> mất trạng thái tab, đúng cái phải tránh).
+    final noiDungChinh = _NenTrangTri(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Menu ngang CHỈ có ý nghĩa ở tab Trang chủ (nhảy tới các khối
+          // trên trang đó) - các tab khác không có gì để cuộn tới nên ẩn
+          // đi, tránh hiện thừa một thanh menu vô dụng ở trên đầu
+          if (_tabDangChon == 0) menuNgang,
+          Expanded(
+            child: IndexedStack(index: _tabDangChon, children: cacTab),
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-
-      // IndexedStack: giữ nguyên trạng thái các tab khi chuyển qua lại
-      // (ví dụ đang gõ dở form đặt lịch, qua tab khác rồi quay lại vẫn còn)
-      // Bọc trong _NenTrangTri: nền chuyển màu + họa tiết icon mờ 2 bên
-      // để màn hình web rộng không bị trống trải
-      body: _NenTrangTri(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Menu ngang CHỈ có ý nghĩa ở tab Trang chủ (nhảy tới các khối
-            // trên trang đó) - các tab khác không có gì để cuộn tới nên ẩn
-            // đi, tránh hiện thừa một thanh menu vô dụng ở trên đầu
-            if (_tabDangChon == 0) menuNgang,
-            Expanded(
-              child: IndexedStack(index: _tabDangChon, children: cacTab),
-            ),
-          ],
-        ),
-      ),
-
-      // Thanh điều hướng dưới đáy
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabDangChon,
-        onDestinationSelected: (i) => setState(() => _tabDangChon = i),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(
-              icon: Icon(Icons.add_circle_outline), label: 'Đặt lịch'),
-          NavigationDestination(
-              icon: Icon(Icons.list_alt), label: 'Lịch của tôi'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline), label: 'Tài khoản'),
         ],
       ),
     );
+
+    // LayoutBuilder: đo bề rộng thật sự có để vẽ, từ đó chọn kiểu điều hướng
+    // phù hợp - dưới 900px giữ nguyên NavigationBar dưới đáy như cũ, từ
+    // 900px trở lên đổi qua NavigationRail cột trái.
+    return LayoutBuilder(builder: (context, constraints) {
+      final manHinhRong = constraints.maxWidth >= _mocManHinhRong;
+
+      return Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 68,
+          title: tieuDeApp,
+          actions: [
+            IconButton(
+              tooltip: 'Tài khoản',
+              icon: const Icon(Icons.account_circle_outlined,
+                  color: Colors.white),
+              onPressed: () => setState(() => _tabDangChon = 3),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+
+        // Màn hình rộng: thêm NavigationRail cột trái, nội dung chính co
+        // giãn (Expanded) chiếm phần còn lại. Màn hình hẹp: nội dung chính
+        // chiếm trọn bề ngang như trước.
+        body: manHinhRong
+            ? Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _tabDangChon,
+                    onDestinationSelected: (i) =>
+                        setState(() => _tabDangChon = i),
+                    labelType: NavigationRailLabelType.all,
+                    destinations: _diemDieuHuong
+                        .map((d) => NavigationRailDestination(
+                            icon: Icon(d.$1), label: Text(d.$2)))
+                        .toList(),
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: noiDungChinh),
+                ],
+              )
+            : noiDungChinh,
+
+        // Thanh điều hướng dưới đáy - CHỈ hiện ở màn hình hẹp, màn hình rộng
+        // đã có NavigationRail thay thế nên bỏ (null).
+        bottomNavigationBar: manHinhRong
+            ? null
+            : NavigationBar(
+                selectedIndex: _tabDangChon,
+                onDestinationSelected: (i) => setState(() => _tabDangChon = i),
+                destinations: _diemDieuHuong
+                    .map((d) =>
+                        NavigationDestination(icon: Icon(d.$1), label: d.$2))
+                    .toList(),
+              ),
+      );
+    });
   }
 }
 
@@ -301,6 +344,13 @@ class _KhauHieuChayState extends State<_KhauHieuChay> {
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
+      // Mặc định AnimatedSwitcher xếp CHỒNG cả câu cũ (đang mờ đi) và câu
+      // mới (đang hiện ra) lên nhau trong lúc chuyển - vì 3 câu khẩu hiệu
+      // dài ngắn khác nhau, chồng cả 2 câu full lên nhau nhìn như chữ đè
+      // chữ, khó đọc. layoutBuilder này chỉ giữ câu MỚI, bỏ câu cũ ra khỏi
+      // phần xếp chồng -> vẫn mờ dần khi xuất hiện nhưng không đè chữ.
+      layoutBuilder: (currentChild, previousChildren) =>
+          currentChild ?? const SizedBox.shrink(),
       child: Text(
         _cauKhauHieu[_chiSo],
         key: ValueKey(_chiSo),

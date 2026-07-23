@@ -192,6 +192,73 @@ class _DatLichScreenState extends State<DatLichScreen> {
     super.dispose();
   }
 
+  /// Icon gợi ý theo TÊN loại rác (so khớp gần đúng bằng contains, không
+  /// cần khớp tuyệt đối). Luôn có nhánh mặc định (Icons.delete_outline) để
+  /// loại rác admin thêm mới sau này (chưa nằm trong danh sách so khớp bên
+  /// dưới) vẫn hiện được icon, không bao giờ thiếu icon.
+  IconData _iconTheoLoai(String ten) {
+    final t = ten.toLowerCase();
+    // "tái chế" phải kiểm tra TRƯỚC "rác thường" (không có nhánh riêng cho
+    // "rác thường" nên nó rơi vào mặc định) để không bị nhánh khác nuốt mất.
+    if (t.contains('tái chế')) return Icons.recycling;
+    if (t.contains('nguy hại')) return Icons.warning_amber;
+    if (t.contains('cồng kềnh')) return Icons.chair;
+    if (t.contains('hữu cơ')) return Icons.compost;
+    if (t.contains('điện tử')) return Icons.devices;
+    return Icons.delete_outline;
+  }
+
+  /// 1 thẻ loại rác trong lưới chọn. Bấm vào -> chọn (hoặc đổi sang loại
+  /// khác); thẻ đang chọn đổi viền + nền bằng AnimatedContainer cho mượt.
+  Widget _theLoaiRac(Map<String, dynamic> loai) {
+    final dangChon = loai['id'] == _loaiRacDangChon;
+    final mauChuDao = Theme.of(context).colorScheme.primary;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => setState(() => _loaiRacDangChon = loai['id']),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: dangChon ? mauChuDao : Colors.grey.shade300,
+              width: dangChon ? 2 : 1,
+            ),
+            color: dangChon ? mauChuDao.withOpacity(0.08) : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(_iconTheoLoai(loai['ten_loai_rac']), color: mauChuDao),
+              const SizedBox(height: 6),
+              Text(
+                loai['ten_loai_rac'],
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${dinhDangTien(loai['don_gia'])}/kg',
+                style: TextStyle(color: mauChuDao, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                (loai['mo_ta'] ?? '').toString(),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -208,22 +275,28 @@ class _DatLichScreenState extends State<DatLichScreen> {
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
 
-                // ---- 1. Chọn loại rác (dropdown) ----
-                DropdownButtonFormField<int>(
-                  value: _loaiRacDangChon,
-                  decoration: const InputDecoration(
-                    labelText: 'Loại rác',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
-                  items: _dsLoaiRac
-                      .map((l) => DropdownMenuItem<int>(
-                            value: l['id'],
-                            child: Text(
-                                '${l['ten_loai_rac']} - ${dinhDangTien(l['don_gia'])}/kg'),
-                          ))
-                      .toList(),
-                  // setState để chi phí dự kiến tính lại ngay khi đổi loại
-                  onChanged: (v) => setState(() => _loaiRacDangChon = v),
+                // ---- 1. Chọn loại rác (lưới thẻ) ----
+                const Text('Loại rác',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: Colors.black54)),
+                const SizedBox(height: 8),
+                // Cố định 2 cột: form bị ConstrainedBox bọc ngoài giới hạn
+                // tối đa 500px nên bề rộng thật sự tới GridView chỉ khoảng
+                // 470px (đã trừ padding) - không bao giờ đủ rộng để lên 3
+                // cột, LayoutBuilder theo mốc 700px là thừa, bỏ đi cho gọn.
+                GridView.count(
+                  crossAxisCount: 2,
+                  // Nằm trong form đang cuộn (SingleChildScrollView) nên
+                  // GridView không tự cuộn riêng - để cha cuộn hết
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.5,
+                  children:
+                      _dsLoaiRac.map((loai) => _theLoaiRac(loai)).toList(),
                 ),
                 const SizedBox(height: 16),
 
@@ -343,11 +416,20 @@ class _DatLichScreenState extends State<DatLichScreen> {
                       const Text('Chi phí dự kiến:',
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       Text(
-                        dinhDangTien(_chiPhiDuKien),
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2E7D32)),
+                        // Chưa chọn loại rác thì chưa có gì để tính - hiện
+                        // chữ nhắc thay vì "0 đ" (nhìn như lỗi tính toán)
+                        _loaiRacDangChon == null
+                            ? 'Chọn loại rác để xem giá'
+                            : dinhDangTien(_chiPhiDuKien),
+                        style: _loaiRacDangChon == null
+                            ? const TextStyle(
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.black54)
+                            : const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32)),
                       ),
                     ],
                   ),

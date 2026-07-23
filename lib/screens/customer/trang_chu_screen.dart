@@ -136,7 +136,7 @@ class TrangChuScreen extends StatelessWidget {
       (
         [Color(0xFF2E7D32), Color(0xFF9CCC65)],
         Icons.payments_outlined,
-        'Giá Thu Mua Minh Bạch',
+        'Giá Thu Gom Minh Bạch',
         'Bảng giá rõ ràng theo từng loại rác, cân tại nhà',
         'assets/images/banner4.png',
       ),
@@ -728,7 +728,7 @@ class TrangChuScreen extends StatelessWidget {
               style: TextStyle(color: Colors.white70, height: 2)),
           Text('Đặt lịch thu gom trực tuyến',
               style: TextStyle(color: Colors.white70, height: 2)),
-          Text('Thu mua rác tái chế',
+          Text('Giá thu gom minh bạch',
               style: TextStyle(color: Colors.white70, height: 2)),
         ],
       ),
