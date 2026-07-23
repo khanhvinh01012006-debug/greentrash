@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/CNPMemlt/greentrash -maxdepth 3 -not -path '*/\\\\.*')",
+      "Bash(find /d/CNPMemlt/greentrash/lib/screens -maxdepth 3 -not -path '*/\\\\.*')",
+      "WebFetch(domain:xulychatthairan.com)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter run *)",
+      "Bash(break)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5000/ --max-time 5)",
+      "Bash(curl -s http://127.0.0.1:5000/ --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5000/admin --max-time 5)",
+      "Bash(chromium-cli --help)",
+      "Bash(echo \"PID:$!\")",
+      "Read(//tmp/**)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist //FI \"PID eq 10724\")",
+      "Bash(taskkill //F //PID 10724)",
+      "Bash(flutter create *)",
+      "Bash(rm -f /tmp/flutter_run.log)",
+      "Bash(tasklist //FI \"IMAGENAME eq dart.exe\")",
+      "Bash(tasklist //FI \"IMAGENAME eq chrome.exe\")",
+      "Bash(taskkill //F //PID 21684)",
+      "Bash(rm -f /tmp/flutter_run2.log)",
+      "Bash(rm -f /tmp/flutter_run3.log)",
+      "Bash(dart format *)",
+      "Bash(python3 -c \"import playwright\")",
+      "Bash(npx --yes playwright --version)",
+      "Bash(where.exe msedge *)",
+      "Bash(where.exe chrome.exe)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(node test_dropdown.js)",
+      "Bash(node shot_initial.js)",
+      "Bash(node test_dropdown2.js)",
+      "Bash(node test_dropdown3.js)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+Thư mục này chứa ẢNH THẬT dùng cho banner ở Trang chủ.
+
+Bỏ đúng 5 file ảnh với TÊN CHÍNH XÁC như sau (chữ thường, không dấu, đuôi .png):
+  banner1.png
+  banner2.png
+  banner3.png
+  banner4.png
+  gioi_thieu.png
+
+Gợi ý nội dung từng ảnh (khớp với khẩu hiệu đang hiện):
+  banner1.png     -> ảnh xe/nhân viên thu gom rác tận nhà
+  banner2.png     -> ảnh phân loại rác tại nguồn (thùng rác nhiều màu...)
+  banner3.png     -> ảnh người dùng đặt lịch trên điện thoại/máy tính
+  banner4.png     -> ảnh cân rác / thu mua phế liệu
+  gioi_thieu.png  -> ảnh đại diện công ty/đội ngũ, dùng ở khối "Giới thiệu"
+                     (khung ngang, vd 800x600) - CHƯA có cũng không sao, khối
+                     này sẽ tự hiện khung viền nét đứt "chờ ảnh" thay vì lỗi
+
+Lưu ý:
+- BẮT BUỘC đuôi .png, phải đúng tên/đuôi file đã khai báo trong
+  lib/screens/customer/trang_chu_screen.dart.
+- Kích thước khuyến nghị: rộng tối thiểu 1200px, tỉ lệ ngang (vd 1200x600)
+  để ảnh không bị vỡ nét khi phóng to trên màn hình rộng.
+- CHƯA có file nào ở đây cũng không sao - banner sẽ tự động hiện màu nền +
+  icon thay thế, không bị lỗi hay vỡ giao diện.
+- Bỏ ảnh vào xong, chạy lại app (hot restart phím R) là thấy ảnh ngay,
+  không cần sửa code gì thêm.
