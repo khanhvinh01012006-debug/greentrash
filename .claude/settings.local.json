@@ -58,7 +58,11 @@
       "Bash(powershell -Command \"Stop-Process -Id 15964 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 41608 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 31220 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 47488 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 47488 -Force\")",
+      "Bash(git tag *)",
+      "Bash(gh auth *)",
+      "Bash(git remote *)",
+      "Bash(git push *)"
     ]
   }
 }
