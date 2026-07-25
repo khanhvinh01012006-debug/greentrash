@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/khung_chat.dart';
 
 class LichCuaToiScreen extends StatefulWidget {
   // Bấm nút "Đặt lịch ngay" ở trạng thái rỗng -> gọi callback này để màn
@@ -221,6 +222,14 @@ class _TheLich extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                // Nhắn tin với admin về lịch này - luôn hiện, không phụ
+                // thuộc trạng thái (khách có thể cần hỏi ở bất kỳ lúc nào)
+                TextButton.icon(
+                  onPressed: () => moKhungChat(context, lich['id']),
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  label: const Text('Nhắn tin'),
+                ),
+
                 // Chỉ được HỦY khi lịch còn chờ xác nhận (đúng quy định UC10)
                 if (trangThai == 'cho_xac_nhan')
                   TextButton.icon(

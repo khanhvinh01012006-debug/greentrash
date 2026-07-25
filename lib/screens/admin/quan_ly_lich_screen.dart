@@ -16,6 +16,7 @@
 import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/khung_chat.dart';
 
 class QuanLyLichScreen extends StatefulWidget {
   const QuanLyLichScreen({super.key});
@@ -116,6 +117,13 @@ class _QuanLyLichScreenState extends State<QuanLyLichScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Nhắn tin với khách về lịch này - luôn hiện
+                          IconButton(
+                            tooltip: 'Nhắn tin',
+                            onPressed: () =>
+                                moKhungChat(context, lich['id']),
+                            icon: const Icon(Icons.chat_bubble_outline),
+                          ),
                           ChipTrangThai(trangThai: trangThai),
                           // PopupMenuButton = menu 3 chấm với các hành động
                           PopupMenuButton<String>(

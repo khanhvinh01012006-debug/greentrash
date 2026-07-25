@@ -538,3 +538,30 @@ class ThanhToanService {
         .update({'trang_thai_tt': 'da_thanh_toan'}).eq('id', maLich);
   }
 }
+
+// ============================================================================
+// PHẦN BỔ SUNG: CHAT khách hàng <-> admin (update_06_chat.sql)
+// Chat gắn theo TỪNG LỊCH (không phải phòng chat chung) - mỗi lịch có 1
+// luồng tin nhắn riêng, giống bình luận dưới 1 đơn hàng.
+// ============================================================================
+class ChatService {
+  /// Stream REALTIME tin nhắn của 1 lịch, cũ -> mới (ngay_gui tăng dần) để
+  /// hiện đúng thứ tự đọc từ trên xuống trong khung chat.
+  static Stream<List<Map<String, dynamic>>> streamTinNhan(int maLich) {
+    return supabase
+        .from('tin_nhan')
+        .stream(primaryKey: ['id'])
+        .eq('ma_lich', maLich)
+        .order('ngay_gui', ascending: true);
+  }
+
+  /// Gửi 1 tin nhắn cho lịch [maLich] - nguoi_gui luôn là người ĐANG đăng
+  /// nhập (khách hoặc admin), khớp đúng điều kiện RLS bên database.
+  static Future<void> guiTinNhan(int maLich, String noiDung) async {
+    await supabase.from('tin_nhan').insert({
+      'ma_lich': maLich,
+      'nguoi_gui': supabase.auth.currentUser!.id,
+      'noi_dung': noiDung,
+    });
+  }
+}
