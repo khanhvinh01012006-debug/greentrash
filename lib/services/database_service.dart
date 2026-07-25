@@ -9,6 +9,7 @@
 // ============================================================================
 
 import '../main.dart'; // dùng biến `supabase`
+import '../widgets/common.dart'; // dùng lại dinhDangNgay khi soạn nội dung thông báo
 
 class DatabaseService {
   // ==========================================================================
@@ -161,11 +162,37 @@ class DatabaseService {
 
   /// Admin duyệt / từ chối / hoàn tất lịch (UC "Xác nhận lịch hẹn")
   /// trangThaiMoi: 'da_xac_nhan' | 'hoan_tat' | 'da_huy'
+  /// Hàm này CHỈ được gọi từ màn quản lý lịch của ADMIN (quan_ly_lich_screen.dart)
+  /// - khách tự hủy lịch dùng huyLich() riêng, không đi qua đây - nên mới
+  /// tạo thông báo "duyệt/hủy" ở đây, không tạo trong huyLich().
   static Future<void> doiTrangThaiLich(int id, String trangThaiMoi) async {
-    await supabase
+    // .select(...).single() lấy lại đúng 2 cột cần để soạn thông báo, khỏi
+    // phải gọi thêm 1 lượt SELECT riêng.
+    final lich = await supabase
         .from('lich_thu_gom')
         .update({'trang_thai': trangThaiMoi})
-        .eq('id', id);
+        .eq('id', id)
+        .select('ma_khach_hang, ngay_hen')
+        .single();
+
+    // Thông báo là HIỆU ỨNG PHỤ: lỗi ở đây không được làm hỏng việc đổi
+    // trạng thái đã thành công ở trên (bọc riêng try/catch, nuốt lỗi).
+    if (trangThaiMoi == 'da_xac_nhan' || trangThaiMoi == 'da_huy') {
+      try {
+        final ngay = dinhDangNgay(DateTime.parse(lich['ngay_hen']));
+        await ThongBaoService.taoThongBao(
+          maNguoiNhan: lich['ma_khach_hang'],
+          loai: trangThaiMoi == 'da_xac_nhan' ? 'duyet' : 'huy',
+          noiDung: trangThaiMoi == 'da_xac_nhan'
+              ? 'Đơn thu gom ngày $ngay đã được duyệt.'
+              : 'Đơn thu gom ngày $ngay đã bị hủy.',
+          maLich: id,
+        );
+      } catch (_) {
+        // Bỏ qua - việc đổi trạng thái đã xong, không để lỗi tạo thông báo
+        // khiến admin tưởng nhầm thao tác chính thất bại.
+      }
+    }
   }
 
   /// Lấy chi tiết 1 lịch KÈM thông tin liên quan.
@@ -533,9 +560,27 @@ class ThanhToanService {
 
   /// Admin xác nhận ĐÃ NHẬN ĐƯỢC TIỀN (sau khi kiểm tra tài khoản/thu tiền mặt)
   static Future<void> adminXacNhanDaNhanTien(int maLich) async {
-    await supabase
+    final lich = await supabase
         .from('lich_thu_gom')
-        .update({'trang_thai_tt': 'da_thanh_toan'}).eq('id', maLich);
+        .update({'trang_thai_tt': 'da_thanh_toan'})
+        .eq('id', maLich)
+        .select('ma_khach_hang, ngay_hen')
+        .single();
+
+    // Thông báo là hiệu ứng phụ - lỗi ở đây không được làm hỏng việc xác
+    // nhận tiền đã thành công ở trên.
+    try {
+      final ngay = dinhDangNgay(DateTime.parse(lich['ngay_hen']));
+      await ThongBaoService.taoThongBao(
+        maNguoiNhan: lich['ma_khach_hang'],
+        loai: 'thanh_toan',
+        noiDung: 'Đã xác nhận thanh toán cho đơn ngày $ngay.',
+        maLich: maLich,
+      );
+    } catch (_) {
+      // Bỏ qua - đã xác nhận tiền xong, không để lỗi tạo thông báo làm
+      // admin tưởng nhầm thao tác chính thất bại.
+    }
   }
 }
 
@@ -558,10 +603,73 @@ class ChatService {
   /// Gửi 1 tin nhắn cho lịch [maLich] - nguoi_gui luôn là người ĐANG đăng
   /// nhập (khách hoặc admin), khớp đúng điều kiện RLS bên database.
   static Future<void> guiTinNhan(int maLich, String noiDung) async {
+    final userId = supabase.auth.currentUser!.id;
     await supabase.from('tin_nhan').insert({
       'ma_lich': maLich,
-      'nguoi_gui': supabase.auth.currentUser!.id,
+      'nguoi_gui': userId,
       'noi_dung': noiDung,
+    });
+
+    // Báo cho "PHÍA BÊN KIA" biết có tin nhắn mới - hiệu ứng phụ, lỗi ở
+    // đây không được làm hỏng việc gửi tin đã thành công ở trên.
+    try {
+      final lich = await supabase
+          .from('lich_thu_gom')
+          .select('ma_khach_hang, ngay_hen')
+          .eq('id', maLich)
+          .single();
+      final ngay = dinhDangNgay(DateTime.parse(lich['ngay_hen']));
+      final laKhachCuaLich = lich['ma_khach_hang'] == userId;
+
+      if (laKhachCuaLich) {
+        // Khách vừa gửi -> báo cho ADMIN. RLS chặn khách tự tra id admin
+        // (chỉ xem được đúng hồ sơ của mình) nên phải gọi qua hàm
+        // lay_id_admin() (SECURITY DEFINER, xem update_08_lay_id_admin.sql)
+        final idAdmin = await supabase.rpc('lay_id_admin') as String?;
+        if (idAdmin != null) {
+          await ThongBaoService.taoThongBao(
+            maNguoiNhan: idAdmin,
+            loai: 'tin_nhan',
+            noiDung: 'Khách có tin nhắn mới về đơn ngày $ngay.',
+            maLich: maLich,
+          );
+        }
+      } else {
+        // Admin vừa gửi -> báo cho đúng khách của lịch này
+        await ThongBaoService.taoThongBao(
+          maNguoiNhan: lich['ma_khach_hang'],
+          loai: 'tin_nhan',
+          noiDung: 'Bạn có tin nhắn mới về đơn ngày $ngay.',
+          maLich: maLich,
+        );
+      }
+    } catch (_) {
+      // Bỏ qua - tin nhắn đã gửi xong, không để lỗi tạo thông báo làm
+      // người dùng tưởng nhầm việc gửi tin thất bại.
+    }
+  }
+}
+
+// ============================================================================
+// PHẦN BỔ SUNG: THÔNG BÁO (update_07_thong_bao.sql)
+// Thông báo được SINH TỪ CODE FLUTTER (không dùng trigger) - mỗi sự kiện
+// nghiệp vụ (duyệt/hủy/thanh toán/tin nhắn) tự gọi taoThongBao() sau khi
+// việc chính đã thành công.
+// ============================================================================
+class ThongBaoService {
+  /// Tạo 1 thông báo gửi cho [maNguoiNhan]. Đặt tên "tạo" (không phải "gửi")
+  /// vì đây chỉ là ghi 1 dòng dữ liệu, không phải đẩy push notification thật.
+  static Future<void> taoThongBao({
+    required String maNguoiNhan,
+    required String loai,
+    required String noiDung,
+    int? maLich,
+  }) async {
+    await supabase.from('thong_bao').insert({
+      'ma_nguoi_nhan': maNguoiNhan,
+      'loai': loai,
+      'noi_dung': noiDung,
+      'ma_lich': maLich,
     });
   }
 }
