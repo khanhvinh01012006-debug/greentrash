@@ -169,3 +169,61 @@ class _KhungChatState extends State<KhungChat> {
     );
   }
 }
+
+// ============================================================================
+// NutChatHeader - nút chat đặt ở header (AppBar), KHÁC với nút "Nhắn tin"
+// trên từng thẻ lịch. Vì chat gắn theo TỪNG ĐƠN (không phải chat chung) nên
+// bấm ở đây KHÔNG mở thẳng khung chat - chỉ chuyển tới nơi chọn 1 lịch cụ
+// thể ([khiBam] quyết định, khác nhau giữa màn khách và admin) kèm SnackBar
+// gợi ý. Có badge đỏ đếm thông báo loại 'tin_nhan' CHƯA ĐỌC, lọc thẳng từ
+// ThongBaoService.streamThongBao() - không cần thêm stream riêng.
+// ============================================================================
+class NutChatHeader extends StatelessWidget {
+  final VoidCallback khiBam;
+
+  /// Kiểm tra khách đã có lịch nào chưa trước khi chuyển tab - chỉ cần cho
+  /// màn khách (nếu null, coi như luôn có, dùng cho màn admin).
+  final Future<bool> Function()? kiemTraCoLich;
+
+  const NutChatHeader({super.key, required this.khiBam, this.kiemTraCoLich});
+
+  Future<void> _bam(BuildContext context) async {
+    if (kiemTraCoLich != null) {
+      final coLich = await kiemTraCoLich!();
+      if (!coLich) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Bạn cần đặt lịch trước khi nhắn tin.')));
+        }
+        return;
+      }
+    }
+    khiBam();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chọn một lịch để nhắn tin.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: ThongBaoService.streamThongBao(),
+      builder: (context, snapshot) {
+        final soTinChuaDoc = (snapshot.data ?? [])
+            .where((t) => t['loai'] == 'tin_nhan' && t['da_doc'] == false)
+            .length;
+
+        return IconButton(
+          tooltip: 'Nhắn tin',
+          onPressed: () => _bam(context),
+          icon: Badge(
+            isLabelVisible: soTinChuaDoc > 0,
+            label: Text(soTinChuaDoc > 9 ? '9+' : '$soTinChuaDoc'),
+            child: const Icon(Icons.chat_bubble_outline),
+          ),
+        );
+      },
+    );
+  }
+}

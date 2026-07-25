@@ -23,6 +23,8 @@ import 'trang_chu_screen.dart';
 import 'dat_lich_screen.dart';
 import 'lich_cua_toi_screen.dart';
 import 'tai_khoan_screen.dart';
+import '../../widgets/chuong_thong_bao.dart';
+import '../../widgets/khung_chat.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -258,6 +260,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           toolbarHeight: 68,
           title: tieuDeApp,
           actions: [
+            // Tạm đặt cạnh icon Tài khoản - chưa cần căn chỉnh đẹp, lượt
+            // sau lo bố cục cân đối hơn.
+            NutChatHeader(
+              khiBam: () => setState(() => _tabDangChon = 2),
+              kiemTraCoLich: () async {
+                final ds = await supabase
+                    .from('lich_thu_gom')
+                    .select('id')
+                    .eq('ma_khach_hang', supabase.auth.currentUser!.id)
+                    .limit(1);
+                return (ds as List).isNotEmpty;
+              },
+            ),
+            ChuongThongBao(
+              onMoLich: (maLich) => setState(() => _tabDangChon = 2),
+            ),
             IconButton(
               tooltip: 'Tài khoản',
               icon: const Icon(Icons.account_circle_outlined,

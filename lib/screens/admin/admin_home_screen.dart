@@ -26,6 +26,8 @@ import 'quan_ly_vat_tu_screen.dart';
 import 'quan_ly_bai_viet_screen.dart';
 import 'bao_cao_screen.dart';
 import 'danh_gia_screen.dart';
+import '../../widgets/chuong_thong_bao.dart';
+import '../../widgets/khung_chat.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -90,6 +92,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         foregroundColor: Colors.white,
         title: Text('Quản trị - ${_menu[_mucDangChon].$2}'),
         actions: [
+          // Tạm đặt cạnh nút Đăng xuất - chưa cần căn chỉnh đẹp, lượt sau
+          // lo bố cục cân đối hơn.
+          NutChatHeader(khiBam: () => setState(() => _mucDangChon = 0)),
+          ChuongThongBao(
+            onMoLich: (maLich) => setState(() => _mucDangChon = 0),
+          ),
           IconButton(
             tooltip: 'Đăng xuất',
             icon: const Icon(Icons.logout),

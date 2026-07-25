@@ -672,4 +672,31 @@ class ThongBaoService {
       'ma_lich': maLich,
     });
   }
+
+  /// Stream REALTIME thông báo của người ĐANG đăng nhập, mới nhất lên đầu
+  /// (ngay_tao giảm dần) - dùng cho chuông thông báo + badge nút chat.
+  static Stream<List<Map<String, dynamic>>> streamThongBao() {
+    final userId = supabase.auth.currentUser!.id;
+    return supabase
+        .from('thong_bao')
+        .stream(primaryKey: ['id'])
+        .eq('ma_nguoi_nhan', userId)
+        .order('ngay_tao', ascending: false);
+  }
+
+  /// Đánh dấu 1 thông báo đã đọc (bấm vào thông báo đó)
+  static Future<void> danhDauDaDoc(int id) async {
+    await supabase.from('thong_bao').update({'da_doc': true}).eq('id', id);
+  }
+
+  /// Đánh dấu TẤT CẢ thông báo CHƯA ĐỌC của mình là đã đọc (nút "Đánh dấu
+  /// tất cả đã đọc" trên đầu danh sách)
+  static Future<void> danhDauTatCaDaDoc() async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase
+        .from('thong_bao')
+        .update({'da_doc': true})
+        .eq('ma_nguoi_nhan', userId)
+        .eq('da_doc', false);
+  }
 }
