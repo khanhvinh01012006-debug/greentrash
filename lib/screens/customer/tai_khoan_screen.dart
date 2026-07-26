@@ -16,9 +16,14 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/common.dart';
+import 'lich_cua_toi_screen.dart';
 
 class TaiKhoanScreen extends StatefulWidget {
-  const TaiKhoanScreen({super.key});
+  // Bấm mục "Lịch thu gom của tôi" -> push màn LichCuaToiScreen gốc; màn đó
+  // vẫn cần callback này cho nút "Đặt lịch ngay" ở trạng thái rỗng của nó
+  // (tái dùng đúng cơ chế onDatLichNgay đã có, không tạo callback mới).
+  final VoidCallback onDatLichNgay;
+  const TaiKhoanScreen({super.key, required this.onDatLichNgay});
 
   @override
   State<TaiKhoanScreen> createState() => _TaiKhoanScreenState();
@@ -190,6 +195,30 @@ class _TaiKhoanScreenState extends State<TaiKhoanScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  }
+
+  /// Mở màn "Lịch của tôi" GỐC trong 1 route riêng (có nút back tự động
+  /// nhờ Scaffold+AppBar bọc ngoài) - KHÔNG nhồi nội dung lịch vào trang
+  /// Tài khoản, chỉ điều hướng sang xem y hệt màn hiện có, không sửa gì
+  /// bên trong LichCuaToiScreen.
+  void _moLichCuaToi() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('Lịch thu gom của tôi')),
+          body: LichCuaToiScreen(
+            onDatLichNgay: () {
+              // Đóng route này trước rồi mới chuyển tab Đặt lịch - không
+              // thì bấm xong vẫn đứng nguyên ở đây, không thấy tab vừa
+              // chuyển tới.
+              Navigator.pop(context);
+              widget.onDatLichNgay();
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -437,10 +466,17 @@ class _TaiKhoanScreenState extends State<TaiKhoanScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ---- Đổi mật khẩu + Đăng xuất ----
+              // ---- Lịch của tôi + Đổi mật khẩu + Đăng xuất ----
               Card(
                 child: Column(
                   children: [
+                    ListTile(
+                      leading: const Icon(Icons.event_note),
+                      title: const Text('Lịch thu gom của tôi'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _moLichCuaToi,
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.lock_reset),
                       title: const Text('Đổi mật khẩu'),

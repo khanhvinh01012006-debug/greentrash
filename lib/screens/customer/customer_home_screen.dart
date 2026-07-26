@@ -35,14 +35,14 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   // Mốc bề rộng đổi layout: dưới mốc này dùng NavigationBar dưới đáy (kiểu
-  // điện thoại), từ mốc trở lên đổi qua NavigationRail cột trái (kiểu web/
-  // desktop) - xổ 1 thanh ngang dưới đáy trên màn hình rộng trông như app
-  // di động bị phóng to, không hợp.
+  // điện thoại). Từ mốc trở lên (desktop/web): KHÔNG còn thanh điều hướng
+  // riêng nào nữa - menu ngang (Trang chủ/Giới thiệu/Dịch vụ/Tin tức/Liên
+  // hệ) trở thành điều hướng DUY NHẤT, luôn hiện bất kể tab đang mở (xem
+  // chỗ build noiDungChinh). Đặt lịch vào qua nút "Đặt lịch ngay" ở Trang
+  // chủ; Lịch của tôi vào qua mục trong Tài khoản.
   static const double _mocManHinhRong = 900;
 
-  // Dữ liệu 4 tab (icon + nhãn) - khai 1 LẦN ở đây rồi dùng chung để tạo
-  // cả NavigationDestination (NavigationBar) lẫn NavigationRailDestination
-  // (NavigationRail), tránh chép 2 bộ icon/nhãn dễ lệch nhau khi sửa sau này.
+  // Dữ liệu 4 tab (icon + nhãn) - dùng cho NavigationBar dưới đáy ở mobile.
   static const List<(IconData, String)> _diemDieuHuong = [
     (Icons.home_outlined, 'Trang chủ'),
     (Icons.add_circle_outline, 'Đặt lịch'),
@@ -222,38 +222,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       trangChu,
       const DatLichScreen(),
       LichCuaToiScreen(onDatLichNgay: _batDauDatLich),
-      const TaiKhoanScreen(),
+      TaiKhoanScreen(onDatLichNgay: _batDauDatLich),
     ];
 
-    // Nội dung chính (menu ngang + IndexedStack 4 tab) - khai báo 1 LẦN duy
-    // nhất ở đây rồi dùng chung cho cả layout hẹp (mobile) lẫn layout rộng
-    // (desktop) bên dưới. Nhờ vậy IndexedStack luôn là CÙNG MỘT cây widget,
-    // không bị build thành 2 bản riêng biệt (build 2 bản = 2 State khác
-    // nhau -> mất trạng thái tab, đúng cái phải tránh).
-    final noiDungChinh = _NenTrangTri(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Menu ngang CHỈ có ý nghĩa ở tab Trang chủ (nhảy tới các khối
-          // trên trang đó) - các tab khác không có gì để cuộn tới nên ẩn
-          // đi, tránh hiện thừa một thanh menu vô dụng ở trên đầu
-          if (_tabDangChon == 0) menuNgang,
-          Expanded(
-            // IndexedStack (thay vì cacTab[_tabDangChon]) giữ TẤT CẢ 4 màn
-            // luôn tồn tại trong cây, chỉ ẩn/hiện - nên đang gõ dở form Đặt
-            // lịch mà lỡ qua tab khác rồi quay lại, dữ liệu đã gõ vẫn còn
-            // (không bị dispose/tạo lại State như cách chọn 1 widget duy nhất).
-            child: IndexedStack(index: _tabDangChon, children: cacTab),
-          ),
-        ],
-      ),
-    );
-
-    // LayoutBuilder: đo bề rộng thật sự có để vẽ, từ đó chọn kiểu điều hướng
-    // phù hợp - dưới 900px giữ nguyên NavigationBar dưới đáy như cũ, từ
-    // 900px trở lên đổi qua NavigationRail cột trái.
+    // LayoutBuilder: đo bề rộng thật sự có để vẽ, từ đó quyết định mobile
+    // hay desktop - quyết định này ảnh hưởng menu ngang có luôn hiện hay
+    // không, nên noiDungChinh phải build BÊN TRONG đây (cần biết manHinhRong
+    // trước khi build), nhưng vẫn ĐÚNG 1 LẦN mỗi lượt build, không tạo cây
+    // widget thứ 2 - IndexedStack vẫn luôn là CÙNG MỘT cây (giữ trạng thái
+    // form/tab khi chuyển qua lại, không bị dispose/tạo lại State).
     return LayoutBuilder(builder: (context, constraints) {
       final manHinhRong = constraints.maxWidth >= _mocManHinhRong;
+
+      final noiDungChinh = _NenTrangTri(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Mobile: menu ngang chỉ hiện ở tab Trang chủ như trước (các
+            // tab khác không có gì để cuộn tới). Desktop: LUÔN hiện bất kể
+            // tab nào - đây là điều hướng DUY NHẤT trên desktop (không còn
+            // rail/bottom nav), ẩn đi là kẹt, không có đường về Trang chủ.
+            if (_tabDangChon == 0 || manHinhRong) menuNgang,
+            Expanded(
+              child: IndexedStack(index: _tabDangChon, children: cacTab),
+            ),
+          ],
+        ),
+      );
 
       return Scaffold(
         appBar: AppBar(
@@ -286,30 +281,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ],
         ),
 
-        // Màn hình rộng: thêm NavigationRail cột trái, nội dung chính co
-        // giãn (Expanded) chiếm phần còn lại. Màn hình hẹp: nội dung chính
-        // chiếm trọn bề ngang như trước.
-        body: manHinhRong
-            ? Row(
-                children: [
-                  NavigationRail(
-                    selectedIndex: _tabDangChon,
-                    onDestinationSelected: (i) =>
-                        setState(() => _tabDangChon = i),
-                    labelType: NavigationRailLabelType.all,
-                    destinations: _diemDieuHuong
-                        .map((d) => NavigationRailDestination(
-                            icon: Icon(d.$1), label: Text(d.$2)))
-                        .toList(),
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(child: noiDungChinh),
-                ],
-              )
-            : noiDungChinh,
+        // Không còn Row/NavigationRail nào cả - desktop lẫn mobile đều
+        // chiếm trọn bằng noiDungChinh, chỉ khác nhau ở menu ngang/bottom
+        // nav bên dưới.
+        body: noiDungChinh,
 
-        // Thanh điều hướng dưới đáy - CHỈ hiện ở màn hình hẹp, màn hình rộng
-        // đã có NavigationRail thay thế nên bỏ (null).
+        // Thanh điều hướng dưới đáy - CHỈ hiện ở màn hình hẹp (mobile).
+        // Desktop không còn thanh nào thay thế - menu ngang (luôn hiện,
+        // xem noiDungChinh ở trên) đảm nhiệm việc đó.
         bottomNavigationBar: manHinhRong
             ? null
             : NavigationBar(
