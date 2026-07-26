@@ -35,11 +35,11 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   // Mốc bề rộng đổi layout: dưới mốc này dùng NavigationBar dưới đáy (kiểu
-  // điện thoại). Từ mốc trở lên (desktop/web): KHÔNG còn thanh điều hướng
-  // riêng nào nữa - menu ngang (Trang chủ/Giới thiệu/Dịch vụ/Tin tức/Liên
-  // hệ) trở thành điều hướng DUY NHẤT, luôn hiện bất kể tab đang mở (xem
-  // chỗ build noiDungChinh). Đặt lịch vào qua nút "Đặt lịch ngay" ở Trang
-  // chủ; Lịch của tôi vào qua mục trong Tài khoản.
+  // điện thoại). Từ mốc trở lên (desktop/web): không còn rail/bottom nav -
+  // về Trang chủ bằng cách bấm logo (luôn bấm được, mọi tab); menu ngang
+  // (Giới thiệu/Dịch vụ/Tin tức/Liên hệ) chỉ hiện ở tab Trang chủ, giống
+  // mobile, tránh bấm nhầm rồi bị văng tab giữa chừng. Đặt lịch vào qua nút
+  // "Đặt lịch ngay" ở Trang chủ; Lịch của tôi vào qua mục trong Tài khoản.
   static const double _mocManHinhRong = 900;
 
   // Dữ liệu 4 tab (icon + nhãn) - dùng cho NavigationBar dưới đáy ở mobile.
@@ -138,11 +138,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       keyLienHe: _keyLienHe,
     );
 
-    // Menu ngang phía trên - đưa chuột vào (web) hoặc bấm (điện thoại) vào
-    // các mục có mũi tên sẽ xổ dropdown xuống, giống các web dịch vụ tham
-    // khảo. TRANG CHỦ và LIÊN HỆ không có mục con thật (chỉ có 1 đích đến)
-    // nên để bấm thẳng, giống cách trang tham khảo cũng xử lý 2 mục này.
-    final menuNgang = _ThanhMenuNgang(cacMuc: [
+    // Dữ liệu menu ngang (chỉ 1 LẦN, dùng chung cho cả khách vãng lai lẫn
+    // đã đăng nhập) - đưa chuột vào (web) hoặc bấm (điện thoại) vào các mục
+    // có mũi tên sẽ xổ dropdown xuống, giống các web dịch vụ tham khảo.
+    // TRANG CHỦ và LIÊN HỆ không có mục con thật (chỉ có 1 đích đến) nên để
+    // bấm thẳng, giống cách trang tham khảo cũng xử lý 2 mục này.
+    final cacMucMenu = [
       _MucMenu('TRANG CHỦ', onTap: _cuonLenDau),
       _MucMenu('GIỚI THIỆU', mucCon: [
         ('Về GreenTrash', () => _cuonToi(_keyGioiThieu)),
@@ -157,28 +158,38 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ('Hướng dẫn phân loại rác', () => _cuonToi(_keyHuongDan)),
       ]),
       _MucMenu('LIÊN HỆ', onTap: () => _cuonToi(_keyLienHe)),
-    ]);
+    ];
+
+    // Dùng cho khách vãng lai - giangDeu mặc định false (cuộn ngang như cũ)
+    final menuNgang = _ThanhMenuNgang(cacMuc: cacMucMenu);
 
     // Tiêu đề AppBar: icon + tên app + khẩu hiệu nhỏ chạy chữ bên dưới -
-    // trước đây chỉ có icon+chữ trông khá trống trải trên nền xanh to
-    final tieuDeApp = Row(
-      children: [
-        const Icon(Icons.eco, size: 30),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('GreenTrash',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19)),
-              SizedBox(height: 2),
-              _KhauHieuChay(),
-            ],
+    // trước đây chỉ có icon+chữ trông khá trống trải trên nền xanh to.
+    // Bọc InkWell: bấm logo -> về Trang chủ (tái dùng đúng _cuonLenDau đã
+    // dùng cho mục "TRANG CHỦ" trong menu, không viết hàm mới) - InkWell tự
+    // đổi con trỏ thành pointer khi hover, không đổi gì giao diện logo.
+    final tieuDeApp = InkWell(
+      onTap: _cuonLenDau,
+      child: Row(
+        children: [
+          const Icon(Icons.eco, size: 30),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('GreenTrash',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 19)),
+                SizedBox(height: 2),
+                _KhauHieuChay(),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
 
     // ==========================================================================
@@ -234,15 +245,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return LayoutBuilder(builder: (context, constraints) {
       final manHinhRong = constraints.maxWidth >= _mocManHinhRong;
 
+      // Instance RIÊNG cho nhánh đã đăng nhập (cùng dữ liệu cacMucMenu, chỉ
+      // khác giangDeu) - desktop giãn đều hết chiều ngang thay vì dồn trái
+      // để trống nửa phải; mobile giữ nguyên giangDeu: false (cuộn ngang).
+      final menuNganDaDangNhap =
+          _ThanhMenuNgang(cacMuc: cacMucMenu, giangDeu: manHinhRong);
+
       final noiDungChinh = _NenTrangTri(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Mobile: menu ngang chỉ hiện ở tab Trang chủ như trước (các
-            // tab khác không có gì để cuộn tới). Desktop: LUÔN hiện bất kể
-            // tab nào - đây là điều hướng DUY NHẤT trên desktop (không còn
-            // rail/bottom nav), ẩn đi là kẹt, không có đường về Trang chủ.
-            if (_tabDangChon == 0 || manHinhRong) menuNgang,
+            // Menu ngang CHỈ hiện ở tab Trang chủ - áp dụng CHUNG cho cả
+            // mobile lẫn desktop (khác mobile chỉ ở giangDeu). Rời tab
+            // Trang chủ trên desktop vẫn về được nhờ bấm LOGO (luôn bấm
+            // được, xem tieuDeApp) - không cần thanh menu làm việc đó nữa,
+            // tránh bấm nhầm Dịch vụ/Tin tức từ tab khác rồi bị văng tab.
+            if (_tabDangChon == 0) menuNganDaDangNhap,
             Expanded(
               child: IndexedStack(index: _tabDangChon, children: cacTab),
             ),
@@ -395,7 +413,13 @@ class _MucMenu {
 // ============================================================================
 class _ThanhMenuNgang extends StatefulWidget {
   final List<_MucMenu> cacMuc;
-  const _ThanhMenuNgang({required this.cacMuc});
+
+  // false (mặc định) = cuộn ngang, các mục dồn về trái như cũ (mobile,
+  // khách vãng lai). true = bỏ cuộn ngang, giãn đều các mục hết chiều rộng
+  // đang có (dùng ở desktop, nơi 5 mục dồn trái để trống nửa phải).
+  final bool giangDeu;
+
+  const _ThanhMenuNgang({required this.cacMuc, this.giangDeu = false});
 
   @override
   State<_ThanhMenuNgang> createState() => _ThanhMenuNgangState();
@@ -463,6 +487,62 @@ class _ThanhMenuNgangState extends State<_ThanhMenuNgang> {
       }
     }
 
+    // cacMucWidget: build từng mục 1 LẦN ở đây, dùng chung cho cả 2 cách
+    // xếp bên dưới (giangDeu hay không) - không lặp lại logic build.
+    final cacMucWidget = widget.cacMuc.map((muc) {
+      final coDropdown = muc.mucCon != null && muc.mucCon!.isNotEmpty;
+      final dangMo = muc.ten == _mucDangMo;
+
+      Widget mucNay = MouseRegion(
+        onEnter: coDropdown ? (_) => _mo(muc.ten) : null,
+        onExit: coDropdown ? (_) => _dongTre() : null,
+        child: InkWell(
+          onTap: () {
+            if (coDropdown) {
+              dangMo ? _dong() : _mo(muc.ten);
+            } else {
+              _dong();
+              muc.onTap?.call();
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  muc.ten,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: dangMo ? _xanh : Colors.black87,
+                  ),
+                ),
+                if (coDropdown) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    dangMo ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: dangMo ? _xanh : Colors.black54,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Chỉ mục CÓ dropdown mới cần "cắm cọc" LayerLink để dropdown của
+      // riêng nó bám đúng vị trí
+      if (coDropdown) {
+        mucNay = CompositedTransformTarget(
+          link: _layerLinkCua(muc.ten),
+          child: mucNay,
+        );
+      }
+      return mucNay;
+    }).toList();
+
     return Material(
       color: Colors.white,
       elevation: 1,
@@ -528,67 +608,19 @@ class _ThanhMenuNgangState extends State<_ThanhMenuNgang> {
             ),
           );
         },
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: widget.cacMuc.map((muc) {
-              final coDropdown = muc.mucCon != null && muc.mucCon!.isNotEmpty;
-              final dangMo = muc.ten == _mucDangMo;
-
-              Widget mucNay = MouseRegion(
-                onEnter: coDropdown ? (_) => _mo(muc.ten) : null,
-                onExit: coDropdown ? (_) => _dongTre() : null,
-                child: InkWell(
-                  onTap: () {
-                    if (coDropdown) {
-                      dangMo ? _dong() : _mo(muc.ten);
-                    } else {
-                      _dong();
-                      muc.onTap?.call();
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          muc.ten,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: dangMo ? _xanh : Colors.black87,
-                          ),
-                        ),
-                        if (coDropdown) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            dangMo
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            size: 18,
-                            color: dangMo ? _xanh : Colors.black54,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              );
-
-              // Chỉ mục CÓ dropdown mới cần "cắm cọc" LayerLink để dropdown
-              // của riêng nó bám đúng vị trí
-              if (coDropdown) {
-                mucNay = CompositedTransformTarget(
-                  link: _layerLinkCua(muc.ten),
-                  child: mucNay,
-                );
-              }
-              return mucNay;
-            }).toList(),
-          ),
-        ),
+        // giangDeu: bỏ cuộn ngang, Row giãn đều hết bề rộng đang có
+        // (spaceEvenly cần Row được cấp đủ chiều rộng thật, không phải
+        // chiều rộng "co theo nội dung" như trong SingleChildScrollView).
+        // Mặc định (false): cuộn ngang, các mục dồn về trái như cũ.
+        child: widget.giangDeu
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: cacMucWidget,
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: cacMucWidget),
+              ),
       ),
     );
   }

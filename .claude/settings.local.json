@@ -64,7 +64,9 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(powershell -Command \"Stop-Process -Id 18768 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 24124 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 24124 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 12252 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 16344 -Force\")"
     ]
   }
 }
