@@ -264,6 +264,16 @@ class _DatLichScreenState extends State<DatLichScreen> {
                 ),
               ],
             ),
+            // Ghi chú tĩnh cho khách hiểu con số trên gồm những gì (khách
+            // chỉ trả tiền rác theo khối lượng - vật tư là chi phí nội bộ,
+            // không cộng vào đây) - chỉ là chữ hiển thị, không tính toán gì.
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Đã bao gồm phí thu gom tận nơi. Miễn phí túi đựng và đồ bảo hộ.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
           ],
         ),
       ),

@@ -198,6 +198,16 @@ class _TheLich extends StatelessWidget {
                 Icons.location_on_outlined, lich['dia_chi_thu_gom'] ?? ''),
             _dongThongTin(Icons.scale_outlined,
                 '${lich['khoi_luong_uoc_tinh'] ?? '?'} kg - ${dinhDangTien(lich['chi_phi_du_kien'] ?? 0)}'),
+            // Ghi chú tĩnh: khách chỉ trả tiền rác theo khối lượng - vật tư
+            // là chi phí nội bộ, không cộng vào số trên. Chỉ là chữ hiển
+            // thị, không đụng gì tới cách tính chi_phi_du_kien.
+            const Padding(
+              padding: EdgeInsets.only(left: 22, bottom: 4),
+              child: Text(
+                'Đã bao gồm phí thu gom tận nơi. Miễn phí túi đựng và đồ bảo hộ.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
 
             // Ảnh rác nếu có upload
             if (lich['hinh_anh_url'] != null) ...[
