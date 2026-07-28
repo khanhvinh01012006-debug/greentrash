@@ -67,7 +67,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 24124 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 12252 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 16344 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 7256 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 7256 -Force\")",
+      "Bash(grep -viE \"^\\\\d|\\\\.\\(dart|md|yaml|yml|lock|gitignore|iml|json|xml\\)$|android|ios|linux|macos|web|windows|assets|build|supabase|lib$|\\\\.claude|\\\\.dart_tool|\\\\.git$|\\\\.idea\")"
     ]
   }
 }

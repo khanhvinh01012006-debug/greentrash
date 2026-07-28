@@ -20,6 +20,10 @@ class ChuongThongBao extends StatelessWidget {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: ThongBaoService.streamThongBao(),
       builder: (context, snapshot) {
+        // Đếm chưa đọc bằng LỌC CLIENT-SIDE trên toàn bộ danh sách đã tải
+        // (không viết thêm 1 hàm/truy vấn đếm riêng) - vì streamThongBao()
+        // vốn đã trả về mọi thông báo của mình, danh sách này không dài
+        // nên lọc lại ở Dart mỗi lần build là đủ nhanh, không cần tối ưu.
         final soChuaDoc =
             (snapshot.data ?? []).where((t) => t['da_doc'] == false).length;
 

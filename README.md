@@ -129,10 +129,10 @@ Xong! Dữ liệu cũ giữ nguyên, cột mới có giá trị NULL cho các d�
 ## 7. Các file SQL cập nhật thêm (BẮT BUỘC chạy đủ, đúng thứ tự)
 
 `schema.sql` chỉ tạo 5 bảng gốc. Sau đó phải chạy tiếp các file dưới đây
-trong **SQL Editor**, đúng theo thứ tự số (01 → 05) — file sau có thể phụ
-thuộc cột/bảng do file trước tạo ra. Tất cả đều dùng `ADD COLUMN IF NOT
-EXISTS` / `CREATE TABLE IF NOT EXISTS` nên **chạy lại nhiều lần vẫn an
-toàn, không mất dữ liệu cũ**.
+trong **SQL Editor**, đúng theo thứ tự số (01 → 08) — file sau có thể phụ
+thuộc cột/bảng/hàm do file trước tạo ra. Tất cả đều dùng `ADD COLUMN IF NOT
+EXISTS` / `CREATE TABLE IF NOT EXISTS` / `CREATE OR REPLACE FUNCTION` nên
+**chạy lại nhiều lần vẫn an toàn, không mất dữ liệu cũ**.
 
 | # | File | Bổ sung gì | Bắt buộc cho |
 |---|---|---|---|
@@ -141,10 +141,19 @@ toàn, không mất dữ liệu cũ**.
 | 3 | `supabase/update_03_thanh_toan.sql` | Cột `phuong_thuc_tt`, `trang_thai_tt` trong `lich_thu_gom` | **Toàn bộ luồng thanh toán** (khách chọn tiền mặt/QR, admin xác nhận) — **THIẾU FILE NÀY APP SẼ LỖI** vì code đọc thẳng 2 cột này (`lich_cua_toi_screen.dart`, `quan_ly_lich_screen.dart`) |
 | 4 | `supabase/update_04_anh_dai_dien.sql` | Cột `anh_dai_dien_url` trong `nguoi_dung` | Đổi ảnh đại diện ở tab Tài khoản |
 | 5 | `supabase/update_05_cong_khai_bang_gia_tin_tuc.sql` | Mở policy SELECT cho vai trò `anon` trên `loai_rac`, `bai_viet` | Khách **chưa đăng nhập** xem được bảng giá + tin tức ở Trang chủ |
+| 6 | `supabase/update_06_chat.sql` | Bảng `tin_nhan` (chat khách ↔ admin, gắn theo từng lịch) + bật realtime | **Nút "Nhắn tin"** ở thẻ lịch (khách) và màn quản lý lịch (admin) — **THIẾU FILE NÀY APP SẼ LỖI** vì `ChatService` đọc/ghi thẳng bảng `tin_nhan` |
+| 7 | `supabase/update_07_thong_bao.sql` | Bảng `thong_bao` (duyệt/hủy/thanh toán/tin nhắn) + bật realtime | **Chuông thông báo + badge đỏ** ở header — **THIẾU FILE NÀY APP SẼ LỖI** vì `ThongBaoService` đọc/ghi thẳng bảng `thong_bao` |
+| 8 | `supabase/update_08_lay_id_admin.sql` | Hàm `lay_id_admin()` (SECURITY DEFINER, bỏ qua RLS để tìm 1 admin) | Thông báo **khách → admin** khi khách gửi tin nhắn (`ChatService.guiTinNhan` gọi `.rpc('lay_id_admin')`) — thiếu hàm này chiều thông báo này âm thầm không chạy (không báo lỗi, vì bọc try/catch) |
 
 > ⚠️ Nếu chỉ chạy `schema.sql` rồi bỏ qua các file trên, app vẫn khởi động
-> được nhưng sẽ báo lỗi (hoặc âm thầm trả về 0 dòng, không báo lỗi gì) ngay
-> khi chạm tới tính năng tương ứng ở cột "Bắt buộc cho".
+> được nhưng sẽ báo lỗi (hoặc âm thầm trả về 0 dòng/không làm gì, không báo
+> lỗi gì) ngay khi chạm tới tính năng tương ứng ở cột "Bắt buộc cho". Đặc
+> biệt lưu ý **update_03** (thanh toán) và **update_06/07** (chat/thông
+> báo — thiếu 2 file này, khung chat và danh sách thông báo sẽ **treo mãi
+> ở vòng xoay tải** vì `StreamBuilder` chỉ kiểm tra "đã có dữ liệu chưa",
+> không bắt lỗi riêng - không có thông báo lỗi rõ ràng, chỉ là tải mãi
+> không xong). **update_08** thiếu thì nhẹ hơn: chỉ mất chiều thông báo
+> khách→admin khi nhắn tin, không ảnh hưởng gì khác (đã bọc try/catch).
 
 ## 8. Lệnh chạy app
 

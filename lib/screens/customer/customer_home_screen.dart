@@ -262,6 +262,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             // tránh bấm nhầm Dịch vụ/Tin tức từ tab khác rồi bị văng tab.
             if (_tabDangChon == 0) menuNganDaDangNhap,
             Expanded(
+              // IndexedStack (thay vì cacTab[_tabDangChon]) giữ TẤT CẢ 4
+              // màn luôn tồn tại trong cây, chỉ ẩn/hiện - nên đang gõ dở
+              // form Đặt lịch mà lỡ qua tab khác rồi quay lại, dữ liệu đã
+              // gõ vẫn còn (không bị dispose/tạo lại State).
               child: IndexedStack(index: _tabDangChon, children: cacTab),
             ),
           ],

@@ -208,6 +208,10 @@ class NutChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
+      // Dùng CHUNG đúng 1 nguồn dữ liệu với ChuongThongBao (không tạo
+      // stream riêng cho badge chat) - chỉ lọc thêm điều kiện loai ==
+      // 'tin_nhan' ở đây, vì badge chuông đếm TẤT CẢ loại, badge chat này
+      // chỉ quan tâm riêng loại tin nhắn.
       stream: ThongBaoService.streamThongBao(),
       builder: (context, snapshot) {
         final soTinChuaDoc = (snapshot.data ?? [])
